@@ -1,0 +1,336 @@
+# POSX Framework - Cursor AI Rules
+
+## Project Context
+
+You are working on POSX Framework v1.0.0, a production-ready multi-site token presale platform with:
+- Django REST API backend
+- PostgreSQL with Row Level Security (RLS)
+- Multi-tenant isolation (site-based)
+- Strict security requirements (CSP, CSRF, RLS)
+- Production deployment ready
+
+## Core Principles
+
+### 1. Security First ⭐⭐⭐
+- **RLS is mandatory**: All tenant data MUST use Row Level Security
+- **No unsafe-inline**: Production CSP MUST NOT include 'unsafe-inline'
+- **CSRF smart exemption**: API endpoints use CSRFExemptMiddleware
+- **site_id immutable**: Enforced by database triggers
+- **UUID types**: Always use UUID for comparisons in RLS policies
+
+### 2. Multi-Site Architecture
+- Every order/tier/commission MUST be associated with a site_id
+- Use `current_setting('app.current_site_id', true)::uuid` in RLS policies
+- Admin queries use separate connection (posx_admin role)
+- Never leak data across sites
+
+### 3. Financial Precision
+- **Always use Decimal**: Never use float for money
+- Stripe amounts: `Decimal * 100` → `int` (cents)
+- Database: NUMERIC(18, 6) for all currency fields
+- Python: `from decimal import Decimal, ROUND_HALF_UP`
+
+### 4. Code Quality Standards
+- Type hints for all functions
+- Docstrings for public methods
+- Django best practices
+- DRF serializers for validation
+- Celery for async tasks
+
+## File Organization
+
+```
+backend/
+├── config/               # Django settings
+│   ├── settings/
+│   │   ├── base.py      # Shared settings
+│   │   ├── local.py     # Dev (unsafe-inline OK)
+│   │   └── production.py # Prod (strict CSP)
+│   ├── middleware/      # Custom middleware
+│   └── celery.py        # Celery config
+├── apps/                # Django apps
+│   ├── core/           # Core functionality
+│   │   ├── migrations/ # RLS migrations here!
+│   │   └── views/      # Health checks
+│   ├── users/          # User management
+│   ├── orders/         # Order processing
+│   ├── commissions/    # Commission system
+│   └── allocations/    # Token allocation
+└── requirements/        # Python deps
+```
+
+## Critical Files (DO NOT BREAK)
+
+### 1. RLS Migrations ⭐⭐⭐
+- `apps/core/migrations/0003_create_rls_indexes.py`
+  - MUST have `atomic = False`
+  - Uses `CREATE INDEX CONCURRENTLY`
+  
+- `apps/core/migrations/0004_enable_rls_policies.py`
+  - MUST have `FORCE ROW LEVEL SECURITY`
+  - MUST use `::uuid` for type-safe comparisons
+  - MUST include admin read-only policies
+  - MUST have complete `reverse_sql`
+
+### 2. Security Config ⭐⭐⭐
+- `config/settings/production.py`
+  - NO 'unsafe-inline' in CSP_SCRIPT_SRC or CSP_STYLE_SRC
+  - MUST have CSP_FRAME_ANCESTORS = ("'none'",)
+  - MUST have SECURE_REFERRER_POLICY set
+
+- `config/middleware/csrf_exempt.py`
+  - MUST be before CsrfViewMiddleware in MIDDLEWARE list
+  - Exempts: /api/v1/, /health/, /ready/, /webhooks/
+
+### 3. Health Checks ⭐⭐
+- `apps/core/views/health.py`
+  - Return 503 on error (NOT 500)
+  - Import: timezone, cache, MigrationExecutor
+  - Check: DB, Redis, Migrations, RLS
+
+## Code Generation Rules
+
+### Django Models
+```python
+# ALWAYS include:
+class YourModel(models.Model):
+    # UUID primary key
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    
+    # site_id for multi-tenant (if tenant-scoped)
+    site_id = models.UUIDField()
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Money fields use Decimal
+    amount = models.DecimalField(max_digits=18, decimal_places=6)
+    
+    class Meta:
+        db_table = 'table_name'
+        indexes = [
+            models.Index(fields=['site_id', 'created_at']),
+        ]
+```
+
+### API Views
+```python
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from decimal import Decimal
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_order(request):
+    """
+    Create order
+    
+    ⭐ Security:
+    - CSRF exempt (middleware)
+    - JWT auth required
+    - Site isolation via RLS
+    """
+    # Validate
+    serializer = OrderSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    
+    # Use Decimal for money
+    amount = Decimal(str(request.data['amount']))
+    
+    # Create with site context
+    # RLS will enforce site_id automatically
+    order = Order.objects.create(
+        site_id=request.site_id,  # From middleware
+        amount=amount,
+        # ...
+    )
+    
+    return Response({'order_id': str(order.id)})
+```
+
+### RLS Policies
+```python
+# In migration file
+migrations.RunSQL(
+    sql="""
+        -- Enable RLS with FORCE
+        ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+        ALTER TABLE orders FORCE ROW LEVEL SECURITY;  -- ⭐ FORCE
+        
+        -- Create policy with UUID comparison
+        CREATE POLICY rls_orders_site_isolation ON orders
+            FOR ALL
+            USING (site_id = current_setting('app.current_site_id', true)::uuid)  -- ⭐ ::uuid
+            WITH CHECK (site_id = current_setting('app.current_site_id', true)::uuid);
+    """,
+    reverse_sql="""
+        -- Graceful rollback
+        ALTER TABLE orders DISABLE ROW LEVEL SECURITY;
+    """
+)
+```
+
+## Common Mistakes to Avoid
+
+### ❌ DO NOT
+```python
+# Float for money
+amount = 10.10  # ❌ Floating point error
+
+# Missing site_id
+Order.objects.create(amount=10)  # ❌ No site context
+
+# Unsafe CSP in production
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'")  # ❌ Production
+
+# No type conversion in RLS
+USING (site_id = current_setting('app.current_site_id'))  # ❌ String comparison
+```
+
+### ✅ DO
+```python
+# Decimal for money
+amount = Decimal('10.10')  # ✅ Precise
+
+# Include site_id
+Order.objects.create(site_id=request.site_id, amount=amount)  # ✅
+
+# Strict CSP in production
+CSP_SCRIPT_SRC = ("'self'", "https://js.stripe.com")  # ✅
+
+# Type-safe RLS
+USING (site_id = current_setting('app.current_site_id', true)::uuid)  # ✅
+```
+
+## Testing Guidelines
+
+### RLS Testing
+```python
+def test_rls_isolation():
+    """Test site isolation"""
+    # Create order for site A
+    with site_context(site_a_id):
+        order_a = Order.objects.create(...)
+    
+    # Try to access from site B
+    with site_context(site_b_id):
+        # Should not see order_a
+        assert not Order.objects.filter(id=order_a.id).exists()
+```
+
+### API Testing
+```python
+def test_create_order_api(api_client):
+    """Test order creation"""
+    response = api_client.post('/api/v1/orders/', {
+        'tier_id': str(tier.id),
+        'quantity': 10,
+        'wallet_address': '0x...'
+    })
+    
+    assert response.status_code == 201
+    assert 'order_id' in response.json()
+```
+
+## Documentation Requirements
+
+When creating new features:
+1. Update API documentation
+2. Add docstrings with ⭐ security notes
+3. Include example usage
+4. Document RLS implications
+5. Add to CHANGELOG.md
+
+## Migration Guidelines
+
+### Creating Migrations
+```bash
+# Always review before committing
+python manage.py makemigrations
+python manage.py sqlmigrate app_name 0001
+
+# Check for:
+# - atomic = False for CONCURRENTLY
+# - FORCE ROW LEVEL SECURITY
+# - UUID type casting
+# - Complete reverse_sql
+```
+
+### Dangerous Operations
+```python
+# CONCURRENTLY index (atomic = False)
+class Migration(migrations.Migration):
+    atomic = False  # ⭐ Required
+    
+    operations = [
+        migrations.RunSQL(
+            "CREATE INDEX CONCURRENTLY ...",
+            "DROP INDEX CONCURRENTLY ..."
+        )
+    ]
+```
+
+## Environment-Specific Code
+
+### Development vs Production
+```python
+from django.conf import settings
+
+# CSP example
+if settings.DEBUG:
+    # Development: allow inline
+    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'")
+else:
+    # Production: strict
+    CSP_SCRIPT_SRC = ("'self'", "https://cdn.example.com")
+```
+
+## Quick Reference
+
+### Environment Variables
+- `DJANGO_SETTINGS_MODULE` - Settings module
+- `SECRET_KEY` - Django secret (generate new!)
+- `DB_*` - Database config
+- `STRIPE_SECRET_KEY` - Stripe key (sk_live_* for prod)
+- `AUTH0_DOMAIN` - Auth0 config
+
+### Common Commands
+```bash
+make up              # Start services
+make migrate         # Run migrations
+make check-rls       # Verify RLS status
+make health          # Health check
+make test            # Run tests
+```
+
+### Key URLs
+- `/health/` - Simple health check
+- `/ready/` - Detailed readiness check (DB/Redis/RLS)
+- `/admin/` - Django admin
+- `/api/v1/` - API endpoints
+
+## When Stuck
+
+1. Check `README.md` - Core architecture
+2. Check `PRODUCTION_CHECKLIST.md` - 6 core checkpoints
+3. Check system specs - `POSX_System_Specification_*.md`
+4. Check existing code patterns
+5. Ask questions with context
+
+## AI Assistant Guidelines
+
+When helping with this project:
+- Always consider RLS implications
+- Check for security best practices
+- Verify CSP compliance
+- Use Decimal for money
+- Include proper error handling
+- Write tests for critical paths
+- Document security-sensitive code with ⭐
+
+---
+
+**Remember**: This is a PRODUCTION system with STRICT security requirements.
+When in doubt, prioritize security over convenience.

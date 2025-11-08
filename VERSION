@@ -1,0 +1,22 @@
+POSX Framework v1.0.0
+Production Baseline - RLS + Security Hardened
+
+Release Date: 2025-11-07
+Status: Production Ready ✅
+Code Name: Foundation
+
+Core Features:
+- Row Level Security (RLS) with FORCE enforcement
+- Production CSP (no unsafe-inline)
+- CSRF Smart Exemption for API
+- Health Checks with proper error handling
+- Multi-site isolation
+- Admin cross-site read-only access
+
+Security Checklist:
+✅ RLS with atomic=False migrations
+✅ CSP without unsafe-inline
+✅ CSRF exemption middleware
+✅ Proper WSGI/ASGI setup
+✅ Static files handling
+✅ Robust health checks

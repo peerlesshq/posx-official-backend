@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - posx_network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - posx_network
+
+  # Django Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    # ⭐ 核心检查点 #5: 包含 collectstatic
+    command: >
+      sh -c "
+        python manage.py collectstatic --noinput &&
+        python manage.py migrate &&
+        gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2
+      "
+    env_file:
+      - .env.production
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    volumes:
+      - static_volume:/var/www/static  # ⭐ 静态文件卷
+      - media_volume:/var/www/media    # ⭐ 媒体文件卷
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - posx_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    command: celery -A config worker -l info --max-tasks-per-child=1000
+    env_file:
+      - .env.production
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    networks:
+      - posx_network
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Celery Beat
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    command: celery -A config beat -l info
+    env_file:
+      - .env.production
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    networks:
+      - posx_network
+
+  # Nginx
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - static_volume:/var/www/static:ro  # ⭐ 静态文件（只读）
+      - media_volume:/var/www/media:ro    # ⭐ 媒体文件（只读）
+    depends_on:
+      - backend
+    networks:
+      - posx_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:   # ⭐ 核心检查点 #5
+  media_volume:    # ⭐ 核心检查点 #5
+
+networks:
+  posx_network:
+    driver: bridge
