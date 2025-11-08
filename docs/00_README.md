@@ -22,15 +22,15 @@ docs/
 
 所有文档必须遵循以下命名前缀（大写+下划线）：
 
-| 前缀 | 用途 | 示例 |
-|------|------|------|
-| `PHASE_*` | Phase 开发文档 | `PHASE_C_IMPLEMENTATION.md` |
-| `CONFIG_*` | 配置文档 | `CONFIG_STRIPE.md`, `CONFIG_AUTH0.md` |
-| `SETUP_*` | 安装/初始化指南 | `SETUP_ENVIRONMENT.md` |
-| `SPEC_*` | 规范/架构文档 | `SPEC_SYSTEM_ARCH_v1.0.0.md` |
-| `REPORT_*` | 汇总/报告 | `REPORT_VERIFICATION.md` |
-| `CHECKLIST_*` | 检查清单 | `CHECKLIST_PRODUCTION.md` |
-| `QUICK_*` | 快速指引 | `QUICK_STARTUP.md` |
+| 前缀          | 用途            | 示例                                  |
+| ------------- | --------------- | ------------------------------------- |
+| `PHASE_*`     | Phase 开发文档  | `PHASE_C_IMPLEMENTATION.md`           |
+| `CONFIG_*`    | 配置文档        | `CONFIG_STRIPE.md`, `CONFIG_AUTH0.md` |
+| `SETUP_*`     | 安装/初始化指南 | `SETUP_ENVIRONMENT.md`                |
+| `SPEC_*`      | 规范/架构文档   | `SPEC_SYSTEM_ARCH_v1.0.0.md`          |
+| `REPORT_*`    | 汇总/报告       | `REPORT_VERIFICATION.md`              |
+| `CHECKLIST_*` | 检查清单        | `CHECKLIST_PRODUCTION.md`             |
+| `QUICK_*`     | 快速指引        | `QUICK_STARTUP.md`                    |
 
 ---
 

@@ -82,18 +82,18 @@ docs/
 
 ## 📝 文件重命名映射（部分示例）
 
-| 原文件 | 新路径 | 状态 |
-|--------|--------|------|
-| `QUICKSTART.md` | `docs/startup/QUICK_STARTUP.md` | ✅ 已移动 |
-| `CONFIG_COMPLETE.md` | `docs/config/CONFIG_ENVIRONMENT.md` | ✅ 已移动 |
-| `PHASE_C_IMPLEMENTATION.md` | `docs/phases/PHASE_C_IMPLEMENTATION.md` | ✅ 已移动 |
-| `AUTH0_CONFIG.md` | `docs/config/CONFIG_AUTH0.md` | ✅ 已移动 |
-| `STRIPE_CLI_SETUP.md` | `docs/config/SETUP_STRIPE_CLI.md` | ✅ 已移动 |
-| `POSX_System_Specification_v1_0_4_RLS_Production.md` | `docs/specs/SPEC_RLS_POLICY_v1.0.4.md` | ✅ 已移动 |
-| `ENV_FINAL_CHECKLIST.md` | `docs/reports/CHECKLIST_ENV_FINAL.md` | ✅ 已移动 |
-| `FINAL_SUMMARY.md` | `docs/reports/REPORT_FINAL_SUMMARY.md` | ✅ 已移动 |
-| `docs/ARCHITECTURE.md` | `docs/specs/SPEC_ARCHITECTURE.md` | ✅ 已移动 |
-| `backend/ENV_SETUP_WIZARD.md` | `docs/config/SETUP_ENV_WIZARD.md` | ✅ 已移动 |
+| 原文件                                               | 新路径                                  | 状态     |
+| ---------------------------------------------------- | --------------------------------------- | -------- |
+| `QUICKSTART.md`                                      | `docs/startup/QUICK_STARTUP.md`         | ✅ 已移动 |
+| `CONFIG_COMPLETE.md`                                 | `docs/config/CONFIG_ENVIRONMENT.md`     | ✅ 已移动 |
+| `PHASE_C_IMPLEMENTATION.md`                          | `docs/phases/PHASE_C_IMPLEMENTATION.md` | ✅ 已移动 |
+| `AUTH0_CONFIG.md`                                    | `docs/config/CONFIG_AUTH0.md`           | ✅ 已移动 |
+| `STRIPE_CLI_SETUP.md`                                | `docs/config/SETUP_STRIPE_CLI.md`       | ✅ 已移动 |
+| `POSX_System_Specification_v1_0_4_RLS_Production.md` | `docs/specs/SPEC_RLS_POLICY_v1.0.4.md`  | ✅ 已移动 |
+| `ENV_FINAL_CHECKLIST.md`                             | `docs/reports/CHECKLIST_ENV_FINAL.md`   | ✅ 已移动 |
+| `FINAL_SUMMARY.md`                                   | `docs/reports/REPORT_FINAL_SUMMARY.md`  | ✅ 已移动 |
+| `docs/ARCHITECTURE.md`                               | `docs/specs/SPEC_ARCHITECTURE.md`       | ✅ 已移动 |
+| `backend/ENV_SETUP_WIZARD.md`                        | `docs/config/SETUP_ENV_WIZARD.md`       | ✅ 已移动 |
 
 **完整列表**: 51 个文件已重命名和重组
 
@@ -134,15 +134,15 @@ docs/
 
 所有文档必须遵循以下命名前缀（大写+下划线）：
 
-| 前缀 | 用途 | 示例 |
-|------|------|------|
-| `PHASE_*` | Phase 开发文档 | `PHASE_C_IMPLEMENTATION.md` |
-| `CONFIG_*` | 配置文档 | `CONFIG_STRIPE.md`, `CONFIG_AUTH0.md` |
-| `SETUP_*` | 安装/初始化指南 | `SETUP_ENVIRONMENT.md` |
-| `SPEC_*` | 规范/架构文档 | `SPEC_SYSTEM_ARCH_v1.0.0.md` |
-| `REPORT_*` | 汇总/报告 | `REPORT_VERIFICATION.md` |
-| `CHECKLIST_*` | 检查清单 | `CHECKLIST_PRODUCTION.md` |
-| `QUICK_*` | 快速指引 | `QUICK_STARTUP.md` |
+| 前缀          | 用途            | 示例                                  |
+| ------------- | --------------- | ------------------------------------- |
+| `PHASE_*`     | Phase 开发文档  | `PHASE_C_IMPLEMENTATION.md`           |
+| `CONFIG_*`    | 配置文档        | `CONFIG_STRIPE.md`, `CONFIG_AUTH0.md` |
+| `SETUP_*`     | 安装/初始化指南 | `SETUP_ENVIRONMENT.md`                |
+| `SPEC_*`      | 规范/架构文档   | `SPEC_SYSTEM_ARCH_v1.0.0.md`          |
+| `REPORT_*`    | 汇总/报告       | `REPORT_VERIFICATION.md`              |
+| `CHECKLIST_*` | 检查清单        | `CHECKLIST_PRODUCTION.md`             |
+| `QUICK_*`     | 快速指引        | `QUICK_STARTUP.md`                    |
 
 ## 📚 文档分类索引
 
@@ -208,16 +208,16 @@ All files passed naming check!
 
 ### 规范前缀分布
 
-| 前缀 | 文件数 | 示例 |
-|------|--------|------|
-| `PHASE_*` | 8 | `PHASE_C_IMPLEMENTATION.md` |
-| `CONFIG_*` | 7 | `CONFIG_STRIPE.md`, `CONFIG_AUTH0.md` |
-| `SETUP_*` | 3 | `SETUP_ENVIRONMENT.md` |
-| `SPEC_*` | 6 | `SPEC_SYSTEM_ARCH_v1.0.0.md` |
-| `REPORT_*` | 16 | `REPORT_VERIFICATION.md` |
-| `CHECKLIST_*` | 4 | `CHECKLIST_PRODUCTION.md` |
-| `QUICK_*` | 3 | `QUICK_STARTUP.md` |
-| 特殊允许 | 4 | `00_README.md`, `CHANGELOG.md` |
+| 前缀          | 文件数 | 示例                                  |
+| ------------- | ------ | ------------------------------------- |
+| `PHASE_*`     | 8      | `PHASE_C_IMPLEMENTATION.md`           |
+| `CONFIG_*`    | 7      | `CONFIG_STRIPE.md`, `CONFIG_AUTH0.md` |
+| `SETUP_*`     | 3      | `SETUP_ENVIRONMENT.md`                |
+| `SPEC_*`      | 6      | `SPEC_SYSTEM_ARCH_v1.0.0.md`          |
+| `REPORT_*`    | 16     | `REPORT_VERIFICATION.md`              |
+| `CHECKLIST_*` | 4      | `CHECKLIST_PRODUCTION.md`             |
+| `QUICK_*`     | 3      | `QUICK_STARTUP.md`                    |
+| 特殊允许      | 4      | `00_README.md`, `CHANGELOG.md`        |
 
 ---
 
