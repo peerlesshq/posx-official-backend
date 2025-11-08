@@ -6,13 +6,13 @@
 
 新同事必看：
 
-| 文档 | 用途 | 阅读时间 |
-|------|------|----------|
-| **[QUICK_STARTUP.md](./startup/QUICK_STARTUP.md)** | 🚀 快速启动指南 | 15分钟 |
-| **[CONFIG_ENVIRONMENT.md](./config/CONFIG_ENVIRONMENT.md)** | ⚙️ 环境配置完整指南 | 20分钟 |
-| **[PHASE_C_ACCEPTANCE.md](./phases/PHASE_C_ACCEPTANCE.md)** | ✅ Phase C 验收测试 | 30分钟 |
-| **[CHECKLIST_PRODUCTION.md](./reports/CHECKLIST_PRODUCTION.md)** | 📋 生产环境检查清单 | 10分钟 |
-| **[SPEC_SYSTEM_ARCH_v1.0.0.md](./specs/SPEC_SYSTEM_ARCH_v1.0.0.md)** | 📐 系统架构规范 | 60分钟 |
+| 文档                                                                 | 用途               | 阅读时间 |
+| -------------------------------------------------------------------- | ------------------ | -------- |
+| **[QUICK_STARTUP.md](./startup/QUICK_STARTUP.md)**                   | 🚀 快速启动指南     | 15分钟   |
+| **[CONFIG_ENVIRONMENT.md](./config/CONFIG_ENVIRONMENT.md)**          | ⚙️ 环境配置完整指南 | 20分钟   |
+| **[PHASE_C_ACCEPTANCE.md](./phases/PHASE_C_ACCEPTANCE.md)**          | ✅ Phase C 验收测试 | 30分钟   |
+| **[CHECKLIST_PRODUCTION.md](./reports/CHECKLIST_PRODUCTION.md)**     | 📋 生产环境检查清单 | 10分钟   |
+| **[SPEC_SYSTEM_ARCH_v1.0.0.md](./specs/SPEC_SYSTEM_ARCH_v1.0.0.md)** | 📐 系统架构规范     | 60分钟   |
 
 ---
 
