@@ -185,8 +185,72 @@ def format_money(amount: Union[Decimal, str], currency: str = 'USD') -> str:
     return f"{formatted} {currency}"
 
 
+# ============================================
+# Phase D: 佣金计算专用量化函数
+# ⭐ 统一使用2位小数 ROUND_HALF_UP（与Stripe一致）
+# ============================================
+
+def quantize_commission(amount: Union[Decimal, str]) -> Decimal:
+    """
+    佣金计算专用量化（2位小数）
+    
+    ⭐ Phase D 修正：
+    - 数据库存储：Decimal(18, 6)
+    - 计算时量化：2位小数 ROUND_HALF_UP
+    - 与 Stripe cents 一致
+    
+    Args:
+        amount: 原始金额
+    
+    Returns:
+        Decimal: 量化到2位小数的金额
+    
+    Examples:
+        >>> quantize_commission(Decimal('12.346'))
+        Decimal('12.35')
+        
+        >>> quantize_commission('10.004')
+        Decimal('10.00')
+    """
+    if not isinstance(amount, Decimal):
+        amount = Decimal(str(amount))
+    
+    # 量化到2位小数（标准货币精度）
+    return amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+
+def calculate_commission_amount(order_amount: Decimal, rate_percent: Decimal) -> Decimal:
+    """
+    计算佣金金额
+    
+    ⭐ 统一量化策略：
+    1. 原始计算：order_amount * (rate / 100)
+    2. 量化到2位小数：ROUND_HALF_UP
+    
+    Args:
+        order_amount: 订单金额
+        rate_percent: 佣金比例（如 12.00 表示 12%）
+    
+    Returns:
+        Decimal: 佣金金额（2位小数）
+    
+    Examples:
+        >>> calculate_commission_amount(Decimal('100.00'), Decimal('12.00'))
+        Decimal('12.00')
+        
+        >>> calculate_commission_amount(Decimal('99.99'), Decimal('10.50'))
+        Decimal('10.50')  # 99.99 * 0.105 = 10.4990 → 10.50
+    """
+    # 计算原始佣金
+    raw_commission = order_amount * (rate_percent / Decimal('100'))
+    
+    # 量化到2位小数（与Stripe一致）⭐
+    return quantize_commission(raw_commission)
+
+
 # 导出常用精度
 ZERO = Decimal('0.000000')
 ONE_CENT = Decimal('0.010000')
+TWO_DECIMAL_PRECISION = Decimal('0.01')  # Phase D: 佣金计算精度
 
 
