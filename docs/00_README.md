@@ -2,6 +2,20 @@
 
 > 最后更新：2025-11-08
 
+## ⚡ 快速入口（30秒找到关键路径）
+
+新同事必看：
+
+| 文档 | 用途 | 阅读时间 |
+|------|------|----------|
+| **[QUICK_STARTUP.md](./startup/QUICK_STARTUP.md)** | 🚀 快速启动指南 | 15分钟 |
+| **[CONFIG_ENVIRONMENT.md](./config/CONFIG_ENVIRONMENT.md)** | ⚙️ 环境配置完整指南 | 20分钟 |
+| **[PHASE_C_ACCEPTANCE.md](./phases/PHASE_C_ACCEPTANCE.md)** | ✅ Phase C 验收测试 | 30分钟 |
+| **[CHECKLIST_PRODUCTION.md](./reports/CHECKLIST_PRODUCTION.md)** | 📋 生产环境检查清单 | 10分钟 |
+| **[SPEC_SYSTEM_ARCH_v1.0.0.md](./specs/SPEC_SYSTEM_ARCH_v1.0.0.md)** | 📐 系统架构规范 | 60分钟 |
+
+---
+
 ## 📋 目录结构
 
 ```
@@ -41,7 +55,7 @@ docs/
 - [QUICK_STARTUP.md](./startup/QUICK_STARTUP.md) - 快速启动指南
 - [QUICK_ENV_SETUP.md](./startup/QUICK_ENV_SETUP.md) - 环境快速配置
 - [QUICK_NEXT_STEPS.md](./startup/QUICK_NEXT_STEPS.md) - 下一步操作指南
-- [STARTUP_AND_TEST_GUIDE.md](./startup/STARTUP_AND_TEST_GUIDE.md) - 完整启动和测试指南
+- [GUIDE_STARTUP_AND_TEST.md](./startup/GUIDE_STARTUP_AND_TEST.md) - 完整启动和测试指南
 
 ### ⚙️ Config（配置）
 
@@ -77,12 +91,12 @@ docs/
 
 #### 测试报告
 - [REPORT_ACCEPTANCE_TESTING.md](./reports/REPORT_ACCEPTANCE_TESTING.md) - 验收测试报告
-- [REPORT_AUTH0_STATUS.md](./reports/REPORT_AUTH0_STATUS.md) - Auth0 状态报告
-- [REPORT_AUTH0_TEST.md](./reports/REPORT_AUTH0_TEST.md) - Auth0 测试总结
+- [REPORT_AUTH0_STATUS.md](./reports/REPORT_AUTH0_STATUS.md) - Auth0 测试与状态报告（合并）
 - [REPORT_AUTH0_TESTING.md](./reports/REPORT_AUTH0_TESTING.md) - Auth0 测试指南
 - [REPORT_VERIFICATION.md](./reports/REPORT_VERIFICATION.md) - 验证报告
 
 #### 总结报告
+- [REPORT_DOWNLOAD_PACKAGE.md](./reports/REPORT_DOWNLOAD_PACKAGE.md) - 下载包说明
 - [REPORT_FINAL_SUMMARY.md](./reports/REPORT_FINAL_SUMMARY.md) - 最终总结
 - [REPORT_RELEASE_SUMMARY.md](./reports/REPORT_RELEASE_SUMMARY.md) - 发布总结
 - [REPORT_DELIVERY_SUMMARY.md](./reports/REPORT_DELIVERY_SUMMARY.md) - 交付总结
@@ -101,8 +115,7 @@ docs/
 
 ### 📐 Specs（系统规范）
 
-- [SPEC_SYSTEM_ARCH_v1.0.0.md](./specs/SPEC_SYSTEM_ARCH_v1.0.0.md) - 系统架构规范 v1.0.0
-- [SPEC_SYSTEM_ARCH_v1_0_0_ALT.md](./specs/SPEC_SYSTEM_ARCH_v1_0_0_ALT.md) - 系统架构规范 v1.0.0（备选）
+- [SPEC_SYSTEM_ARCH_v1.0.0.md](./specs/SPEC_SYSTEM_ARCH_v1.0.0.md) - 系统架构规范 v1.0.0（主版本）
 - [SPEC_RLS_POLICY_v1.0.4.md](./specs/SPEC_RLS_POLICY_v1.0.4.md) - RLS 策略规范 v1.0.4
 - [SPEC_FRAMEWORK_GUIDE.md](./specs/SPEC_FRAMEWORK_GUIDE.md) - 框架指南
 - [SPEC_FRAMEWORK_v3.md](./specs/SPEC_FRAMEWORK_v3.md) - 框架规范 v3
@@ -113,9 +126,11 @@ docs/
 - [AI_CONTEXT.md](./misc/AI_CONTEXT.md) - AI 上下文信息
 - [DEVELOPMENT.md](./misc/DEVELOPMENT.md) - 开发指南
 
-#### UNSORTED（待归档）
+### 📐 Templates（文档模板）
 
-- [DOWNLOAD_README.md](./misc/UNSORTED/DOWNLOAD_README.md) > **TODO: 待归档**
+- [TEMPLATE_SPEC.md](./templates/TEMPLATE_SPEC.md) - 规范文档模板
+- [TEMPLATE_REPORT.md](./templates/TEMPLATE_REPORT.md) - 报告文档模板
+- [TEMPLATE_CHECKLIST.md](./templates/TEMPLATE_CHECKLIST.md) - 检查清单模板
 
 ---
 
@@ -133,12 +148,18 @@ docs/
    - 报告清单 → `docs/reports/`
    - 快速指南 → `docs/startup/`
    - 无法分类 → `docs/misc/UNSORTED/`（临时）
+5. **使用文档模板**：
+   - 规范文档使用 [`docs/templates/TEMPLATE_SPEC.md`](./templates/TEMPLATE_SPEC.md)
+   - 报告文档使用 [`docs/templates/TEMPLATE_REPORT.md`](./templates/TEMPLATE_REPORT.md)
+   - 检查清单使用 [`docs/templates/TEMPLATE_CHECKLIST.md`](./templates/TEMPLATE_CHECKLIST.md)
 
 ### Pull Request 规范
 
-- PR 标题必须以 `[docs]` 开头
+- **PR 标题必须以 `[docs]` 开头**
 - 示例：`[docs] Add SETUP_REDIS.md configuration guide`
-- 更新 `docs/00_README.md` 索引（如果添加新文档）
+- **更新 `docs/00_README.md` 索引**（如果添加新文档）
+- **通过命名检查**：PR 必须通过 `python scripts/check_md_naming.py`
+- **基于模板创建**：新文档应基于 `docs/templates/` 中的相应模板
 
 ### 文档质量要求
 

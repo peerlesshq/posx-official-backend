@@ -1,0 +1,119 @@
+name: Documentation Quality Check
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**/*.md'
+      - '*.md'
+      - 'backend/**/*.md'
+  push:
+    branches:
+      - main
+      - 'docs/**'
+    paths:
+      - 'docs/**/*.md'
+      - '*.md'
+
+jobs:
+  check-doc-naming:
+    name: Check Markdown Naming Convention
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Run naming check
+        run: |
+          echo "Checking markdown files naming convention..."
+          python scripts/check_md_naming.py
+      
+      - name: Check for UNSORTED files
+        run: |
+          UNSORTED_COUNT=$(find docs/misc/UNSORTED -name "*.md" 2>/dev/null | wc -l)
+          if [ "$UNSORTED_COUNT" -gt 0 ]; then
+            echo "::warning::Found $UNSORTED_COUNT files in UNSORTED directory that need proper filing"
+          fi
+  
+  check-doc-index:
+    name: Check Documentation Index
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check if index is up to date
+        run: |
+          echo "Checking if docs/00_README.md index is complete..."
+          
+          # Count .md files in docs/
+          TOTAL_MD=$(find docs -name "*.md" ! -path "docs/00_README.md" ! -path "docs/templates/*" | wc -l)
+          
+          # Count links in index
+          INDEX_LINKS=$(grep -c "\.md)" docs/00_README.md || true)
+          
+          echo "Total MD files: $TOTAL_MD"
+          echo "Index links: $INDEX_LINKS"
+          
+          if [ "$INDEX_LINKS" -lt "$TOTAL_MD" ]; then
+            echo "::error::Index appears incomplete. Expected at least $TOTAL_MD links, found $INDEX_LINKS"
+            exit 1
+          fi
+  
+  check-markdown-lint:
+    name: Lint Markdown Files
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run markdownlint
+        uses: articulate/actions-markdownlint@v1
+        with:
+          config: .markdownlint.json
+          files: 'docs/**/*.md'
+          ignore: 'docs/misc/**'
+        continue-on-error: true
+  
+  check-broken-links:
+    name: Check Broken Links
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check for broken internal links
+        run: |
+          echo "Checking for broken internal links in markdown files..."
+          
+          # Simple check: find markdown links and verify files exist
+          BROKEN_LINKS=0
+          
+          for md_file in $(find docs -name "*.md"); do
+            # Extract relative links
+            LINKS=$(grep -oP '\]\(\./[^\)]+\.md\)' "$md_file" | sed 's/](\.\///' | sed 's/)//' || true)
+            
+            for link in $LINKS; do
+              FULL_PATH="docs/$link"
+              if [ ! -f "$FULL_PATH" ]; then
+                echo "::error file=$md_file::Broken link: $link"
+                BROKEN_LINKS=$((BROKEN_LINKS + 1))
+              fi
+            done
+          done
+          
+          if [ "$BROKEN_LINKS" -gt 0 ]; then
+            echo "::error::Found $BROKEN_LINKS broken links"
+            exit 1
+          fi
+          
+          echo "No broken links found!"
+

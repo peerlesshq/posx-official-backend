@@ -21,7 +21,7 @@ from pathlib import Path
 
 # 允许的文件名前缀（正则表达式）
 VALID_PREFIX_PATTERN = re.compile(
-    r'^(PHASE|CONFIG|SETUP|SPEC|REPORT|CHECKLIST|QUICK|ENV)_.*\.md$',
+    r'^(PHASE|CONFIG|SETUP|SPEC|REPORT|CHECKLIST|QUICK|ENV|GUIDE|TEMPLATE)_.*\.md$',
     re.IGNORECASE
 )
 
@@ -48,9 +48,12 @@ def check_filename(file_path):
     if filename in ALLOWED_SPECIAL:
         return True, f"[OK] {file_path.relative_to('docs')}: Special allowed"
     
-    # UNSORTED 目录允许任意命名但警告
+    # UNSORTED 和 templates 目录允许任意命名
     if 'UNSORTED' in file_path.parts:
         return True, f"[WARN] {file_path.relative_to('docs')}: UNSORTED (needs filing)"
+    
+    if 'templates' in file_path.parts:
+        return True, f"[OK] {file_path.relative_to('docs')}: Template file"
     
     # 检查是否匹配规范前缀
     if VALID_PREFIX_PATTERN.match(filename):
