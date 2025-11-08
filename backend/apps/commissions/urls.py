@@ -1,15 +1,14 @@
 """
-Commissions API URLs
-Phase A: 占位，Phase D实现
+Commission API URLs
 """
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+
+from apps.commissions.serializers import CommissionViewSet
+
+router = DefaultRouter()
+router.register(r'commissions', CommissionViewSet, basename='commission')
 
 urlpatterns = [
-    # Phase D: 实现佣金API
-    # path('', CommissionListView.as_view()),
-    # path('stats/', CommissionStatsView.as_view()),
-    # path('withdraw/', CommissionWithdrawView.as_view()),
+    path('', include(router.urls)),
 ]
-
-
-

@@ -1,11 +1,14 @@
 """
-Webhook清理任务
+Webhook 清理任务
 """
 import logging
+from datetime import timedelta
+
 from celery import shared_task
 from django.utils import timezone
-from datetime import timedelta
 from django.conf import settings
+
+from apps.webhooks.models import IdempotencyKey
 
 logger = logging.getLogger(__name__)
 
@@ -15,24 +18,26 @@ def cleanup_old_idempotency_keys(self):
     """
     清理过期的幂等键
     
-    ⭐ 定时任务：每天凌晨3点运行
-    - 删除 processed_at < (now - retention_hours) 的记录
-    - 分页处理
-    
-    Returns:
-        dict: {'deleted': int}
+    ⭐ Celery Beat 定时任务（每天凌晨3点运行）
+    - 删除超过保留期限的幂等键
     """
-    from apps.webhooks.models import IdempotencyKey
+    logger.info("Starting cleanup_old_idempotency_keys task")
     
     retention_hours = getattr(settings, 'IDEMPOTENCY_KEY_RETENTION_HOURS', 48)
-    cutoff = timezone.now() - timedelta(hours=retention_hours)
+    cutoff_time = timezone.now() - timedelta(hours=retention_hours)
     
-    logger.info(f"Cleaning idempotency keys older than {cutoff}")
-    
-    deleted, _ = IdempotencyKey.objects.filter(
-        processed_at__lt=cutoff
+    # 删除过期的键
+    deleted_count, _ = IdempotencyKey.objects.filter(
+        processed_at__lt=cutoff_time
     ).delete()
     
-    logger.info(f"Deleted {deleted} old idempotency keys")
-    return {'deleted': deleted}
-
+    logger.info(
+        f"Cleaned up {deleted_count} old idempotency keys",
+        extra={
+            'deleted_count': deleted_count,
+            'retention_hours': retention_hours,
+            'cutoff_time': cutoff_time.isoformat()
+        }
+    )
+    
+    return deleted_count

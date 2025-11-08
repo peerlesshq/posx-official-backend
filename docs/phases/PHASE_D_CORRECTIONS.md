@@ -203,12 +203,12 @@ except Exception as e:
 ```
 
 **返回码规则**:
-| 情况 | 状态码 | 原因 |
-|------|--------|------|
-| 签名失败 | 400 | Stripe会记录，不重试 |
-| 幂等跳过 | 200 | 正常，已处理 |
-| 业务异常 | 200 | 避免重试，已记录日志 |
-| 成功处理 | 200 | 正常 |
+| 情况     | 状态码 | 原因                 |
+| -------- | ------ | -------------------- |
+| 签名失败 | 400    | Stripe会记录，不重试 |
+| 幂等跳过 | 200    | 正常，已处理         |
+| 业务异常 | 200    | 避免重试，已记录日志 |
+| 成功处理 | 200    | 正常                 |
 
 ---
 
@@ -367,16 +367,16 @@ def commission_list_view(request):
 
 ## 📁 新增文件
 
-| 文件 | 用途 |
-|------|------|
-| `backend/apps/webhooks/handlers.py` | Webhook事件处理器 |
-| `backend/apps/webhooks/views.py` | Webhook视图（含白名单） |
-| `backend/apps/webhooks/tasks.py` | 清理幂等键任务 |
-| `backend/apps/webhooks/utils/audit.py` | 审计日志工具 |
-| `backend/apps/webhooks/utils/idempotency.py` | 幂等性管理 |
-| `backend/apps/users/utils/referral_chain.py` | 推荐链查询（环路检测） |
-| `backend/apps/commissions/tasks.py` | 佣金定时任务 |
-| `backend/apps/commissions/views.py` | 佣金统计API |
+| 文件                                         | 用途                    |
+| -------------------------------------------- | ----------------------- |
+| `backend/apps/webhooks/handlers.py`          | Webhook事件处理器       |
+| `backend/apps/webhooks/views.py`             | Webhook视图（含白名单） |
+| `backend/apps/webhooks/tasks.py`             | 清理幂等键任务          |
+| `backend/apps/webhooks/utils/audit.py`       | 审计日志工具            |
+| `backend/apps/webhooks/utils/idempotency.py` | 幂等性管理              |
+| `backend/apps/users/utils/referral_chain.py` | 推荐链查询（环路检测）  |
+| `backend/apps/commissions/tasks.py`          | 佣金定时任务            |
+| `backend/apps/commissions/views.py`          | 佣金统计API             |
 
 **总计**: 8个新文件，2个修改
 
@@ -458,14 +458,14 @@ return Response(stats)
 
 ## 📊 代码质量指标
 
-| 指标 | Before | After | 改进 |
-|------|--------|-------|------|
-| 幂等保障层数 | 1层 | 2层 | ✅ +100% |
-| 并发安全性 | 部分 | 完整 | ✅ 原子WHERE |
-| 事件白名单 | 无 | 3个 | ✅ 减少干扰 |
-| 日志标准化 | 部分 | 完整 | ✅ 统一格式 |
-| 环路检测 | 无 | ✅ | ✅ visited set |
-| Decimal序列化 | 错误 | 正确 | ✅ 字符串化 |
+| 指标          | Before | After | 改进          |
+| ------------- | ------ | ----- | ------------- |
+| 幂等保障层数  | 1层    | 2层   | ✅ +100%       |
+| 并发安全性    | 部分   | 完整  | ✅ 原子WHERE   |
+| 事件白名单    | 无     | 3个   | ✅ 减少干扰    |
+| 日志标准化    | 部分   | 完整  | ✅ 统一格式    |
+| 环路检测      | 无     | ✅     | ✅ visited set |
+| Decimal序列化 | 错误   | 正确  | ✅ 字符串化    |
 
 ---
 
@@ -473,12 +473,12 @@ return Response(stats)
 
 ### 标记为"未来优化"的4项
 
-| 优化项 | 当前方案 | 未来方案 | 触发条件 |
-|--------|---------|---------|---------|
-| 多环境Secret管理 | 单一SECRET | 多环境多密钥映射 | 多生产环境 |
-| 推荐链缓存 | select_related | Redis缓存 | 查询QPS >1000 |
-| Admin分批事务 | 单次事务 | 分批+batch_id | 单次>10000条 |
-| 独立任务队列 | 默认队列 | 多队列+并发限制 | 总QPS >1000 |
+| 优化项           | 当前方案       | 未来方案         | 触发条件      |
+| ---------------- | -------------- | ---------------- | ------------- |
+| 多环境Secret管理 | 单一SECRET     | 多环境多密钥映射 | 多生产环境    |
+| 推荐链缓存       | select_related | Redis缓存        | 查询QPS >1000 |
+| Admin分批事务    | 单次事务       | 分批+batch_id    | 单次>10000条  |
+| 独立任务队列     | 默认队列       | 多队列+并发限制  | 总QPS >1000   |
 
 **原因**: 初期不会遇到这些规模，避免过度设计
 

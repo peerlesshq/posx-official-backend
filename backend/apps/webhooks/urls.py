@@ -1,16 +1,10 @@
 """
-Webhooks URLs
-Phase A: 占位，Phase D/E实现
+Webhook URLs
 """
 from django.urls import path
 
+from apps.webhooks import views
+
 urlpatterns = [
-    # Phase D: 实现Stripe webhook
-    # path('stripe/', StripeWebhookView.as_view()),
-    
-    # Phase E: 实现Fireblocks webhook
-    # path('fireblocks/', FireblocksWebhookView.as_view()),
+    path('stripe/', views.stripe_webhook_view, name='stripe_webhook'),
 ]
-
-
-

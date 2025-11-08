@@ -1,85 +1,71 @@
 """
-Webhook审计日志工具
+Webhook 审计日志工具
 
-⭐ Phase D: 标准化Webhook事件审计日志
-
-功能：
-- 统一日志格式
-- 结构化extra字段
-- 便于日志聚合和查询
+⭐ Phase D P0: 标准化审计日志格式
 """
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
 
 def log_webhook_event(
-    event_id: str,
-    event_type: str,
-    action: str,
-    order_id: Optional[str] = None,
-    site_id: Optional[str] = None,
-    payment_intent_id: Optional[str] = None,
+    event,
+    order=None,
+    action: str = '',
     old_status: Optional[str] = None,
     new_status: Optional[str] = None,
-    **kwargs
-) -> None:
+    reason: Optional[str] = None,
+    **extra_fields
+):
     """
-    记录Webhook事件审计日志
+    标准化 Webhook 审计日志
+    
+    ⭐ Phase D P0: 统一日志结构，便于追踪和分析
     
     Args:
-        event_id: Stripe事件ID
-        event_type: 事件类型
-        action: 处理动作
-        order_id: 订单ID（可选）
-        site_id: 站点ID（可选）
-        payment_intent_id: PaymentIntent ID（可选）
-        old_status: 原状态（可选）
-        new_status: 新状态（可选）
-        **kwargs: 其他自定义字段
+        event: Stripe事件对象
+        order: 订单对象（如果相关）
+        action: 操作类型（如 'payment_succeeded'）
+        old_status: 旧状态
+        new_status: 新状态
+        reason: 原因说明
+        **extra_fields: 额外字段
     """
     log_data = {
-        'event_id': event_id,
-        'event_type': event_type,
-        'site_id': site_id,
-        'order_id': order_id,
-        'payment_intent_id': payment_intent_id,
+        # 事件信息
+        'event_id': event.id,
+        'event_type': event.type,
+        
+        # 订单信息
+        'site_id': str(order.site_id) if order else None,
+        'order_id': str(order.order_id) if order else None,
+        
+        # 支付信息
+        'payment_intent_id': event.data.object.get('id'),
+        
+        # 状态变更
         'old_status': old_status,
         'new_status': new_status,
+        
+        # 操作信息
         'actor': 'stripe_webhook',
         'action': action,
+        'reason': reason,
+        
+        # 时间戳
         'timestamp': timezone.now().isoformat(),
-        **kwargs  # 允许扩展
     }
     
-    logger.info(f"Webhook: {action}", extra=log_data)
-
-
-def log_webhook_error(
-    event_id: str,
-    event_type: str,
-    error_message: str,
-    **kwargs
-) -> None:
-    """
-    记录Webhook错误日志
+    # 合并额外字段
+    log_data.update(extra_fields)
     
-    Args:
-        event_id: Stripe事件ID
-        event_type: 事件类型
-        error_message: 错误消息
-        **kwargs: 其他自定义字段
-    """
-    log_data = {
-        'event_id': event_id,
-        'event_type': event_type,
-        'error': error_message,
-        'actor': 'stripe_webhook',
-        'timestamp': timezone.now().isoformat(),
-        **kwargs
-    }
+    # 移除 None 值（保持日志简洁）
+    log_data = {k: v for k, v in log_data.items() if v is not None}
     
-    logger.error(f"Webhook error: {error_message}", extra=log_data)
-
+    # 记录日志
+    logger.info(
+        f"Webhook: {action or event.type}",
+        extra=log_data
+    )
