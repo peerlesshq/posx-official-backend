@@ -42,9 +42,10 @@ INSTALLED_APPS = [
     'apps.commissions',
     'apps.webhooks',
     'apps.admin',
-    'apps.commission_plans',
+    # 'apps.commission_plans',  # ⚠️ 临时禁用：与 apps.commissions 模型冲突
     'apps.agents',
     'apps.orders_snapshots',
+    'apps.vesting',  # ⭐ Phase E: Vesting管理
 ]
 
 # ============================================
@@ -188,6 +189,29 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
+# ⭐ Phase E: Celery Beat 定时任务
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    # 每天0点解锁到期的 vesting releases
+    'unlock-vesting-releases': {
+        'task': 'apps.vesting.tasks.unlock_vesting_releases',
+        'schedule': crontab(hour=0, minute=0),
+    },
+    
+    # 每5分钟对账卡住的 releases
+    'reconcile-stuck-releases': {
+        'task': 'apps.vesting.tasks.reconcile_stuck_releases',
+        'schedule': crontab(minute='*/5'),
+    },
+    
+    # 每天2点清理旧的幂等键
+    'cleanup-old-idempotency-keys': {
+        'task': 'apps.vesting.tasks.cleanup_old_idempotency_keys',
+        'schedule': crontab(hour=2, minute=0),
+    },
+}
+
 # ============================================
 # Auth0 Configuration
 # ============================================
@@ -245,14 +269,32 @@ STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='')
 MOCK_STRIPE = env.bool('MOCK_STRIPE', default=False)
 
 # ============================================
-# Fireblocks Configuration
+# Fireblocks Configuration ⭐ Phase E
 # ============================================
+# 运行模式
+FIREBLOCKS_MODE = env('FIREBLOCKS_MODE', default='MOCK')  # MOCK | LIVE
+ALLOW_PROD_TX = env.bool('ALLOW_PROD_TX', default=False)  # LIVE模式双保险
+
+# MOCK 配置
+MOCK_TX_COMPLETE_DELAY = env.int('MOCK_TX_COMPLETE_DELAY', default=3)  # 模拟延迟（秒）
+MOCK_WEBHOOK_URL = env(
+    'MOCK_WEBHOOK_URL',
+    default='http://localhost:8000/api/v1/webhooks/fireblocks/'
+)
+
+# LIVE 配置（⚠️ 仅生产环境配置，开发环境留空）
 FIREBLOCKS_API_KEY = env('FIREBLOCKS_API_KEY', default='')
 FIREBLOCKS_PRIVATE_KEY = env('FIREBLOCKS_PRIVATE_KEY', default='')
-FIREBLOCKS_BASE_URL = env('FIREBLOCKS_BASE_URL', default='https://sandbox-api.fireblocks.io')
+FIREBLOCKS_BASE_URL = env(
+    'FIREBLOCKS_BASE_URL',
+    default='https://api.fireblocks.io'  # 生产环境 API
+)
 FIREBLOCKS_VAULT_ACCOUNT_ID = env('FIREBLOCKS_VAULT_ACCOUNT_ID', default='0')
-FIREBLOCKS_ASSET_ID = env('FIREBLOCKS_ASSET_ID', default='ETH_TEST')
+FIREBLOCKS_ASSET_ID = env('FIREBLOCKS_ASSET_ID', default='POSX_ETH')
+
+# Webhook 签名验证（支持公钥轮换）
 FIREBLOCKS_WEBHOOK_PUBLIC_KEY = env('FIREBLOCKS_WEBHOOK_PUBLIC_KEY', default='')
+FIREBLOCKS_WEBHOOK_PUBLIC_KEY_2 = env('FIREBLOCKS_WEBHOOK_PUBLIC_KEY_2', default='')  # 轮换期备用
 
 # ============================================
 # 核心检查点 #3: CSRF 豁免路径配置 ⭐

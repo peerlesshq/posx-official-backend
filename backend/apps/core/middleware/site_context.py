@@ -39,6 +39,14 @@ class SiteContextMiddleware:
     
     def __call__(self, request):
         """处理每个请求"""
+        # 豁免路径与前缀
+        EXEMPT_PATHS = ("/health/", "/ready/", "/version/", "/favicon.ico")
+        EXEMPT_PREFIXES = ("/admin/", "/__debug__/", "/static/", "/static/admin/", "/media/")
+        
+        if request.path in EXEMPT_PATHS or \
+           any(request.path.startswith(p) for p in EXEMPT_PREFIXES):
+            return self.get_response(request)
+        
         # 解析站点
         site = self._resolve_site(request)
         

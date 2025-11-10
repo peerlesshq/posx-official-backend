@@ -249,20 +249,81 @@ def handle_payment_failed(event):
 
 def handle_dispute_created(event):
     """
-    处理争议创建事件（未来实现）
+    处理争议创建事件（Phase D + Phase F 完整实现）
+    
+    ⚠️ Phase D: 取消未结算佣金
+    ⚠️ Phase F: 回冲已结算佣金（Chargeback）
     
     Args:
         event: Stripe event对象
     """
+    from apps.agents.services.chargeback import process_chargeback_for_order
+    
     charge_id = event.data.object['id']
+    payment_intent_id = event.data.object.get('payment_intent')
+    
+    # 查询订单
+    try:
+        order = Order.objects.select_related('site').get(
+            stripe_payment_intent_id=payment_intent_id
+        )
+    except Order.DoesNotExist:
+        logger.error(
+            f"Order not found for payment_intent {payment_intent_id}",
+            extra={'event_id': event.id, 'charge_id': charge_id}
+        )
+        return
+    
+    # 标记订单为争议
+    old_disputed = order.disputed
+    if not old_disputed:
+        order.disputed = True
+        order.save(update_fields=['disputed', 'updated_at'])
     
     logger.warning(
-        f"Dispute created for charge {charge_id} (暂无处理逻辑)",
-        extra={'event_id': event.id, 'charge_id': charge_id}
+        f"Dispute created for order {order.order_id}",
+        extra={
+            'event_id': event.id,
+            'order_id': str(order.order_id),
+            'charge_id': charge_id,
+            'payment_intent_id': payment_intent_id
+        }
     )
     
-    # TODO: Phase D 后续实现
-    # - 标记订单为争议状态
-    # - 通知管理员
-    # - 冻结相关佣金
+    # Phase D: 取消未结算佣金（hold/ready → cancelled）
+    cancelled_commissions = Commission.objects.filter(
+        order=order,
+        status__in=['hold', 'ready']
+    ).update(
+        status='cancelled',
+        updated_at=timezone.now()
+    )
+    
+    logger.info(
+        f"Cancelled {cancelled_commissions} pending commissions",
+        extra={'order_id': str(order.order_id)}
+    )
+    
+    # ⭐ Phase F: 回冲已结算佣金（Chargeback）
+    chargeback_result = process_chargeback_for_order(order)
+    
+    logger.warning(
+        f"Chargeback processed",
+        extra={
+            'order_id': str(order.order_id),
+            'processed': chargeback_result['processed'],
+            'total_clawed_back': str(chargeback_result['total_clawed_back']),
+            'insufficient_balance': chargeback_result['insufficient_balance_count']
+        }
+    )
+    
+    # 审计日志
+    log_webhook_event(
+        event=event,
+        order=order,
+        action='dispute_created_chargeback_processed',
+        cancelled_commissions=cancelled_commissions,
+        chargeback_processed=chargeback_result['processed'],
+        chargeback_amount=str(chargeback_result['total_clawed_back'])
+    )
 

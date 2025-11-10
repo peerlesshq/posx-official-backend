@@ -126,6 +126,9 @@ class CommissionConfig(models.Model):
     """
     佣金配置（受RLS保护）
     
+    ⚠️ 已废弃：建议使用 CommissionPlan（Phase F 多层级方案）
+    保留用于向后兼容
+    
     每个站点独立配置佣金等级与比例
     
     示例：
@@ -184,6 +187,154 @@ class CommissionConfig(models.Model):
     
     def __str__(self):
         return f"{self.site.code} L{self.level}: {self.rate_percent}%"
+
+
+class CommissionPlan(models.Model):
+    """
+    佣金方案（Phase F，多层级配置化）
+    
+    ⚠️ 安全：
+    - site_id 受 RLS 保护
+    - 每个站点可有多个方案（标准/高级/VIP）
+    
+    用途：
+    - 支持 2-10 级佣金配置
+    - 灵活的方案管理（标准/高级）
+    - 默认方案设置
+    
+    示例：
+    - 标准方案：L1=12%, L2=4%（2级）
+    - 高级方案：L1=15%, L2=5%, L3=2%（3级）
+    - VIP方案：L1=20%, L2=8%, L3=3%, L4=1%（4级）
+    """
+    
+    plan_id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        help_text="方案唯一标识"
+    )
+    site = models.ForeignKey(
+        'sites.Site',
+        on_delete=models.PROTECT,
+        related_name='commission_plans',
+        help_text="所属站点（RLS隔离）"
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="方案名称（标准/高级/VIP）"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="方案描述"
+    )
+    max_levels = models.PositiveSmallIntegerField(
+        default=2,
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        help_text="最大层级数（1-10）"
+    )
+    is_default = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="是否为默认方案"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="方案激活状态"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'commission_plans'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['site', 'name'],
+                name='uq_commission_plan_site_name'
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['site', 'is_default']),
+            models.Index(fields=['site', 'is_active']),
+        ]
+        verbose_name = 'Commission Plan'
+        verbose_name_plural = 'Commission Plans'
+    
+    def __str__(self):
+        default_marker = ' [默认]' if self.is_default else ''
+        return f"{self.site.code} - {self.name}{default_marker}"
+
+
+class CommissionPlanTier(models.Model):
+    """
+    佣金方案层级配置（Phase F）
+    
+    关联：CommissionPlan 的具体层级设置
+    
+    示例：
+    - Plan "标准方案"
+      - L1: 12%, hold 7天
+      - L2: 4%, hold 7天
+    - Plan "高级方案"
+      - L1: 15%, hold 7天
+      - L2: 5%, hold 7天
+      - L3: 2%, hold 7天
+    """
+    
+    tier_id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        help_text="层级唯一标识"
+    )
+    plan = models.ForeignKey(
+        CommissionPlan,
+        on_delete=models.CASCADE,
+        related_name='tiers',
+        help_text="所属方案"
+    )
+    level = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(10)],
+        help_text="层级编号（1-10）"
+    )
+    rate_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0')), MaxValueValidator(Decimal('100'))],
+        help_text="佣金比例（%）"
+    )
+    hold_days = models.PositiveIntegerField(
+        default=7,
+        validators=[MinValueValidator(0)],
+        help_text="持有天数"
+    )
+    min_order_amount = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=Decimal('0'),
+        help_text="最小订单金额（USD，可选条件）"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'commission_plan_tiers'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['plan', 'level'],
+                name='uq_commission_plan_tier_plan_level'
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['plan', 'level']),
+        ]
+        verbose_name = 'Commission Plan Tier'
+        verbose_name_plural = 'Commission Plan Tiers'
+        ordering = ['plan', 'level']
+    
+    def __str__(self):
+        return f"{self.plan.name} L{self.level}: {self.rate_percent}%"
 
 
 

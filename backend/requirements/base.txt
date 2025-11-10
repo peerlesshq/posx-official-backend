@@ -1,0 +1,13 @@
+# Phase E v2.2.1 新增依赖
+
+# 多链地址校验
+web3>=6.0.0
+base58>=2.1.0
+
+# Fireblocks JWT 认证
+PyJWT>=2.8.0
+cryptography>=41.0.0
+
+# Prometheus 指标
+prometheus-client>=0.19.0
+
