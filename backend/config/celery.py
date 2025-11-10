@@ -38,6 +38,16 @@ app.conf.beat_schedule = {
         'task': 'apps.webhooks.tasks.cleanup_old_idempotency_keys',
         'schedule': crontab(hour=3, minute=0),  # 每天凌晨3点
     },
+    # Phase F: 生成月度对账单（每月1号凌晨2点运行）
+    'generate-monthly-statements': {
+        'task': 'apps.agents.tasks.generate_monthly_statements',
+        'schedule': crontab(day_of_month=1, hour=2, minute=0),  # 每月1号凌晨2点
+    },
+    # Phase F: 更新 Agent 统计（每小时运行）
+    'update-agent-stats': {
+        'task': 'apps.agents.tasks.update_agent_stats',
+        'schedule': crontab(minute=30),  # 每小时30分
+    },
 }
 
 

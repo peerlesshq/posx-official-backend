@@ -31,11 +31,13 @@ requests==2.31.0
 # Payment & Blockchain
 stripe==7.8.0
 web3==6.11.3
-siwe==2.1.1
+# 保持 eth-account==0.10.0 与 web3==6.11.3 兼容，升级 siwe 以避免旧版对 eth-account<0.6.0 的限制
+siwe==2.4.1
 eth-account==0.10.0
 
 # Monitoring
 sentry-sdk==1.39.1
+prometheus-client==0.19.0
 
 # Utilities
 python-dateutil==2.8.2

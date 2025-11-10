@@ -60,4 +60,59 @@ class Site(models.Model):
         return f"{self.code} - {self.name}"
 
 
+class ChainAssetConfig(models.Model):
+    """
+    链/资产配置表
+    
+    用途:
+    - 配置不同链的资产小数位
+    - 配置Fireblocks Asset ID
+    - 支持多链多资产
+    """
+    config_id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    site = models.ForeignKey(Site, on_delete=models.CASCADE)
+    
+    # 链信息
+    chain = models.CharField(
+        max_length=20,
+        choices=[
+            ('ETH', 'Ethereum'),
+            ('POLYGON', 'Polygon'),
+            ('BSC', 'BSC'),
+            ('TRON', 'TRON'),
+        ]
+    )
+    
+    # 资产信息
+    token_symbol = models.CharField(max_length=10)
+    token_decimals = models.IntegerField()
+    
+    # Fireblocks配置
+    fireblocks_asset_id = models.CharField(max_length=50)
+    fireblocks_vault_id = models.CharField(max_length=10, default='0')
+    
+    # 地址校验类型
+    address_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('EVM', 'EVM (0x...)'),
+            ('TRON', 'TRON (Base58)'),
+        ],
+        default='EVM'
+    )
+    
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'chain_asset_configs'
+        unique_together = ['site', 'chain', 'token_symbol']
+        indexes = [
+            models.Index(fields=['site', 'is_active']),
+        ]
+    
+    def __str__(self):
+        return f"{self.chain} {self.token_symbol} ({self.token_decimals} decimals)"
+
+
 

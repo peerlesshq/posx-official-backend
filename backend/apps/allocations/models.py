@@ -26,16 +26,12 @@ class Allocation(models.Model):
     批量限制：
     - 管理员批量发送≤100条/次
     """
-    STATUS_PENDING = 'pending'
-    STATUS_PROCESSING = 'processing'
+    STATUS_ACTIVE = 'active'
     STATUS_COMPLETED = 'completed'
-    STATUS_FAILED = 'failed'
     
     STATUS_CHOICES = [
-        (STATUS_PENDING, 'Pending'),
-        (STATUS_PROCESSING, 'Processing'),
+        (STATUS_ACTIVE, 'Active'),
         (STATUS_COMPLETED, 'Completed'),
-        (STATUS_FAILED, 'Failed'),
     ]
     
     allocation_id = models.UUIDField(
@@ -60,31 +56,21 @@ class Allocation(models.Model):
         validators=[MinValueValidator(Decimal('0.000001'))],
         help_text="代币数量"
     )
+    
+    # ========== Task 4: Vesting支持 ⭐ ==========
+    released_tokens = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=Decimal('0'),
+        help_text='已发放到链上的代币数量（累加）'
+    )
+    
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default=STATUS_PENDING,
+        default=STATUS_ACTIVE,
         db_index=True,
         help_text="分配状态"
-    )
-    fireblocks_tx_id = models.CharField(
-        max_length=255,
-        unique=True,
-        null=True,
-        blank=True,
-        db_index=True,
-        help_text="Fireblocks交易ID（幂等键）"
-    )
-    tx_hash = models.CharField(
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="链上交易哈希"
-    )
-    confirmed_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="确认时间"
     )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -93,14 +79,13 @@ class Allocation(models.Model):
         db_table = 'allocations'
         constraints = [
             models.CheckConstraint(
-                check=models.Q(status__in=['pending', 'processing', 'completed', 'failed']),
+                check=models.Q(status__in=['active', 'completed']),
                 name='chk_allocation_status'
             ),
         ]
         indexes = [
             models.Index(fields=['order']),
             models.Index(fields=['status', 'created_at']),
-            models.Index(fields=['fireblocks_tx_id']),
         ]
         verbose_name = 'Allocation'
         verbose_name_plural = 'Allocations'
