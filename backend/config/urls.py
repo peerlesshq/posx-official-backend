@@ -4,6 +4,7 @@ URL Configuration for POSX
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
 from apps.core.views.health import health, ready, version
 from apps.core.views.test_views import test_auth, test_public, test_config
 
@@ -36,9 +37,17 @@ urlpatterns = [
         path('commissions/', include('apps.commissions.urls')),
         path('webhooks/', include('apps.webhooks.urls')),
         
-        # Phase B endpoints
-        path('commission-plans/', include('apps.commission_plans.urls')),
+        # Phase B endpoints (Agents)
         path('agents/', include('apps.agents.urls')),
+        
+        # Admin endpoints (需超级管理员)
+        path('admin-api/', include('apps.admin.urls')),
+        
+        # Vesting endpoints (Retool 对接)
+        path('', include('apps.vesting.urls')),
+        
+        # Core config endpoints (Retool 对接)
+        path('', include('apps.core.urls')),
     ])),
     
     # ============================================
@@ -48,3 +57,13 @@ urlpatterns = [
     path('api/v1/test/public/', test_public, name='test_public'),
     path('api/v1/test/config/', test_config, name='test_config'),
 ]
+
+# Debug Toolbar (仅本地开发)
+if settings.DEBUG:
+    try:
+        import debug_toolbar
+        urlpatterns = [
+            path('__debug__/', include(debug_toolbar.urls)),
+        ] + urlpatterns
+    except ImportError:
+        pass
