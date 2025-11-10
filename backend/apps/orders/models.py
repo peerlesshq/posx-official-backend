@@ -113,6 +113,18 @@ class Order(models.Model):
         max_length=42,
         help_text="收币钱包地址（快照，lowercase）"
     )
+    chain = models.CharField(
+        max_length=20,
+        choices=[
+            ('ETH', 'Ethereum'),
+            ('POLYGON', 'Polygon'),
+            ('BSC', 'BSC'),
+            ('TRON', 'TRON'),
+        ],
+        default='ETH',
+        db_index=True,
+        help_text="订单所在链（多链支持）"
+    )
     disputed = models.BooleanField(
         default=False,
         db_index=True,
