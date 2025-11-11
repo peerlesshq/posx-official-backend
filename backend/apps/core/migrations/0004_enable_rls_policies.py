@@ -24,6 +24,47 @@ class Migration(migrations.Migration):
     # ⭐ Railway Demo 环境临时跳过（需要 posx_admin 角色）
     # 部署时设置环境变量 SKIP_RLS_POLICIES=1 即可跳过
     operations = [] if os.getenv('SKIP_RLS_POLICIES') == '1' else [
+        # 第一步：创建数据库角色（如果不存在）
+        migrations.RunSQL(
+            sql="""
+                -- 创建 posx_admin 角色（管理员，可查看所有数据）
+                DO $$
+                BEGIN
+                  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='posx_admin') THEN
+                    CREATE ROLE posx_admin NOLOGIN;
+                  END IF;
+                END $$;
+                
+                -- 创建 posx_app 角色（应用用户，受 RLS 限制）
+                DO $$
+                BEGIN
+                  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='posx_app') THEN
+                    CREATE ROLE posx_app NOLOGIN;
+                  END IF;
+                END $$;
+                
+                -- 创建 posx_readonly 角色（只读用户）
+                DO $$
+                BEGIN
+                  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='posx_readonly') THEN
+                    CREATE ROLE posx_readonly NOLOGIN;
+                  END IF;
+                END $$;
+                
+                -- 让当前数据库用户继承这些角色
+                GRANT posx_admin TO CURRENT_USER;
+                GRANT posx_app TO CURRENT_USER;
+                GRANT posx_readonly TO CURRENT_USER;
+            """,
+            reverse_sql="""
+                -- 回滚时删除角色（如果没有其他依赖）
+                DROP ROLE IF EXISTS posx_readonly;
+                DROP ROLE IF EXISTS posx_app;
+                DROP ROLE IF EXISTS posx_admin;
+            """
+        ),
+        
+        # 第二步：启用 RLS 策略
         migrations.RunSQL(
             sql="""
                 -- ============================================
