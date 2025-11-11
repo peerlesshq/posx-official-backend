@@ -40,21 +40,45 @@ CSRF_TRUSTED_ORIGINS = env.list(
 # 数据库配置（Railway PostgreSQL）
 # ============================================
 # Railway 自动提供 DATABASE_URL
-database_url = env('DATABASE_URL', default='')
-if not database_url:
-    raise ImproperlyConfigured(
-        "DATABASE_URL environment variable is not set. "
-        "Please ensure Postgres service is connected to this Railway service."
-    )
+database_url = env('DATABASE_URL', default=None)
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=database_url,
-        conn_max_age=600,
-        conn_health_checks=True,
-        ssl_require=True,
+if database_url:
+    # 使用 Railway 提供的 DATABASE_URL
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=database_url,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True,
+        )
+    }
+else:
+    # Fallback: 如果 DATABASE_URL 未设置，抛出清晰的错误
+    import sys
+    import os
+    
+    print("=" * 80, file=sys.stderr)
+    print("❌ DATABASE_URL 环境变量未设置！", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("请检查 Railway 配置：", file=sys.stderr)
+    print("1. Postgres Service 是否已创建并运行？", file=sys.stderr)
+    print("2. Postgres 变量是否已引用到此 Service？", file=sys.stderr)
+    print("   进入 Backend Service → Variables", file=sys.stderr)
+    print("   添加: DATABASE_URL=${{Postgres-FHHx.DATABASE_URL}}", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("当前环境变量:", file=sys.stderr)
+    for key in sorted(os.environ.keys()):
+        if 'PG' in key or 'DATA' in key or 'RAILWAY' in key:
+            value = os.environ[key]
+            # 隐藏密码
+            if 'PASSWORD' in key or 'SECRET' in key:
+                value = '*' * 8
+            print(f"  {key} = {value[:50]}...", file=sys.stderr)
+    print("=" * 80, file=sys.stderr)
+    
+    raise ImproperlyConfigured(
+        "DATABASE_URL is required. Please connect Postgres service to this Railway service."
     )
-}
 
 # ============================================
 # Redis & Celery（Railway Redis）
