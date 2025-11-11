@@ -1,6 +1,10 @@
 """
 佣金计划模型
 
+⚠️ 废弃警告（Deprecation Warning）
+本模型已被标记为废弃，建议使用 apps.commissions.CommissionPlan 替代。
+计划移除时间：v2.0.0
+
 ⭐ RLS 安全：
 - CommissionPlan 和 CommissionPlanTier 都受 RLS 保护
 - site_id 由数据库触发器保护（不可变）

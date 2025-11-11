@@ -52,6 +52,7 @@ def create_order(
     quantity: int,
     wallet_address: str,
     referral_code: Optional[str] = None,
+    promo_code: Optional[str] = None,
     idempotency_key: Optional[str] = None,
     user = None
 ) -> Tuple['Order', str]:
@@ -62,10 +63,13 @@ def create_order(
     1. 幂等性检查
     2. 校验tier和数量
     3. 锁定库存（乐观锁）
-    4. 计算金额
-    5. 创建Order + OrderItem
-    6. 创建OrderCommissionPolicySnapshot
-    7. 创建Stripe PaymentIntent
+    4. 验证 Promo Code（如提供）
+    5. 计算金额（含折扣）
+    6. 计算代币（含额外奖励）
+    7. 创建Order + OrderItem
+    8. 记录 Promo Code 使用
+    9. 创建OrderCommissionPolicySnapshot
+    10. 创建Stripe PaymentIntent
     
     Args:
         site_id: 站点ID
@@ -73,6 +77,7 @@ def create_order(
         quantity: 数量
         wallet_address: 买家钱包地址
         referral_code: 推荐码（可选）
+        promo_code: 促销码（可选）
         idempotency_key: 幂等键（可选但推荐）
         user: 用户实例（可选）
     
@@ -90,16 +95,19 @@ def create_order(
         ...     tier_id=tier_id,
         ...     quantity=1,
         ...     wallet_address='0xabc...',
+        ...     promo_code='SUMMER2025',
         ...     idempotency_key='test-key-123'
         ... )
     """
-    from apps.orders.models import Order, OrderItem
+    from apps.orders.models import Order, OrderItem, PromoCode, PromoCodeUsage
     from apps.tiers.models import Tier
     from apps.users.models import User
     from apps.tiers.services.inventory import lock_inventory
     from apps.orders_snapshots.services import OrderSnapshotService
     from .stripe_service import create_payment_intent, create_mock_payment_intent
+    from .promo_service import validate_promo_code
     from apps.users.utils.wallet import normalize_address
+    from django.db.models import F
     
     # 1. 幂等性检查
     if idempotency_key:
@@ -162,14 +170,77 @@ def create_order(
         except Tier.DoesNotExist:
             raise ValidationError(f"Tier not found: {tier_id}")
         
-        # 7. 计算金额
-        unit_price = tier.list_price_usd
+        # 7. 计算金额（改进：支持促销价和 Promo Code）
+        # 7.1 获取当前有效价格（促销价或原价）
+        unit_price = tier.get_current_price()
         list_price_total = unit_price * quantity
-        discount = Decimal('0')  # 暂无折扣逻辑
+        
+        # 7.2 应用 Promo Code（如果提供）
+        discount = Decimal('0')
+        promo_bonus_tokens = Decimal('0')
+        promo_code_instance = None
+        
+        if promo_code:
+            try:
+                validation_result = validate_promo_code(
+                    code=promo_code,
+                    site_id=site_id,
+                    user=user,
+                    tier=tier,
+                    order_amount=list_price_total
+                )
+                
+                if validation_result['valid']:
+                    discount = validation_result['discount_amount']
+                    promo_bonus_tokens = validation_result['bonus_tokens']
+                    promo_code_instance = validation_result['promo']
+                    
+                    logger.info(
+                        f"Promo code applied: {promo_code}",
+                        extra={
+                            'promo_code': promo_code,
+                            'discount': str(discount),
+                            'bonus_tokens': str(promo_bonus_tokens)
+                        }
+                    )
+                else:
+                    # 验证失败，记录警告但不阻止订单创建
+                    logger.warning(
+                        f"Promo code validation failed: {promo_code}, error: {validation_result['error']}",
+                        extra={
+                            'promo_code': promo_code,
+                            'error_code': validation_result.get('error_code'),
+                            'error': validation_result.get('error')
+                        }
+                    )
+                    # 可选：根据业务需求决定是否抛出异常
+                    # raise ValidationError(validation_result['error'])
+            except Exception as e:
+                logger.error(
+                    f"Error validating promo code: {e}",
+                    exc_info=True,
+                    extra={'promo_code': promo_code}
+                )
+                # 不阻止订单创建，仅记录错误
+        
         final_price = list_price_total - discount
         
-        # 8. 计算代币数量
-        token_amount = tier.tokens_per_unit * quantity
+        # 确保最终价格不为负
+        if final_price < Decimal('0'):
+            final_price = Decimal('0')
+        
+        # 8. 计算代币数量（改进：支持 Tier 赠送和 Promo Code 奖励）
+        # 8.1 基础代币
+        base_tokens = tier.tokens_per_unit * quantity
+        
+        # 8.2 Tier 赠送代币
+        tier_bonus_tokens = tier.bonus_tokens_per_unit * quantity
+        
+        # 8.3 Promo Code 额外代币（已在上面计算）
+        
+        # 8.4 总代币
+        total_tokens = base_tokens + tier_bonus_tokens + promo_bonus_tokens
+        token_amount = total_tokens
         
         # 9. 计算过期时间
         expire_minutes = getattr(settings, 'ORDER_EXPIRE_MINUTES', 15)
@@ -197,6 +268,42 @@ def create_order(
             unit_price_usd=unit_price,
             token_amount=token_amount
         )
+        
+        # 11.5 记录 Promo Code 使用（如果应用了）⭐
+        if promo_code_instance:
+            try:
+                PromoCodeUsage.objects.create(
+                    promo_code=promo_code_instance,
+                    order=order,
+                    user=user,
+                    discount_applied=discount,
+                    bonus_tokens_applied=promo_bonus_tokens
+                )
+                
+                # 更新促销码使用次数（使用 F 表达式避免竞态条件）
+                PromoCode.objects.filter(promo_id=promo_code_instance.promo_id).update(
+                    current_uses=F('current_uses') + 1
+                )
+                
+                logger.info(
+                    f"Promo code usage recorded: {promo_code}",
+                    extra={
+                        'promo_code': promo_code,
+                        'order_id': str(order.order_id),
+                        'user_id': str(user.user_id)
+                    }
+                )
+            except Exception as e:
+                logger.error(
+                    f"Failed to record promo code usage: {e}",
+                    exc_info=True,
+                    extra={
+                        'promo_code': promo_code,
+                        'order_id': str(order.order_id)
+                    }
+                )
+                # 记录失败应回滚整个事务
+                raise OrderServiceError(f"Failed to record promo code usage: {e}") from e
         
         # 12. 创建佣金快照（Phase B模型）⭐
         try:

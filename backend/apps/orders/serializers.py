@@ -51,6 +51,12 @@ class OrderCreateRequestSerializer(serializers.Serializer):
         max_length=20,
         help_text="推荐码（可选）"
     )
+    promo_code = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=50,
+        help_text="促销码（可选）"
+    )
     
     def validate_wallet_address(self, value):
         """验证钱包地址"""

@@ -1,14 +1,24 @@
 """
 Allocations API URLs
-Phase A: 占位，Phase E实现
+
+⭐ P1 补充：用户分配记录查询
+
+端点：
+1. GET /api/v1/allocations/ - 分配记录列表
+2. GET /api/v1/allocations/{id}/ - 分配记录详情
+3. GET /api/v1/allocations/balance/ - 代币余额统计
 """
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from . import views
+
+router = DefaultRouter()
+router.register(r'', views.AllocationViewSet, basename='allocation')
+
+app_name = 'allocations'
 
 urlpatterns = [
-    # Phase E: 实现分配API
-    # path('', AllocationListView.as_view()),
-    # path('<uuid:allocation_id>/', AllocationDetailView.as_view()),
-    # path('balance/', AllocationBalanceView.as_view()),
+    path('', include(router.urls)),
 ]
 
 

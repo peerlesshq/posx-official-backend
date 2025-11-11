@@ -1,6 +1,10 @@
 """
 佣金计划视图集
 
+⚠️ 废弃警告（Deprecation Warning）
+本端点已被标记为废弃，建议使用 /api/v1/commissions/plans/ 替代。
+计划移除时间：v2.0.0
+
 ⭐ 权限：
 - 读取：IsAuthenticated
 - 写入：IsAuthenticated + IsAdminUser（或自定义权限）
@@ -9,6 +13,7 @@
 - 通过 request.site 自动过滤
 - RLS 策略提供二次保障
 """
+import warnings
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -41,6 +46,8 @@ class CommissionPlanViewSet(viewsets.ModelViewSet):
     """
     佣金计划视图集
     
+    ⚠️ DEPRECATED: 本端点已废弃，请使用 /api/v1/commissions/plans/
+    
     功能：
     - GET /api/v1/commission-plans/ - 列表（支持过滤）
     - POST /api/v1/commission-plans/ - 创建计划
@@ -54,6 +61,24 @@ class CommissionPlanViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStaffUser]
     lookup_field = 'plan_id'
     lookup_url_kwarg = 'id'
+    
+    def list(self, request, *args, **kwargs):
+        """列表（含废弃警告）"""
+        warnings.warn(
+            "commission-plans endpoint is deprecated, use /api/v1/commissions/plans/ instead",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return super().list(request, *args, **kwargs)
+    
+    def create(self, request, *args, **kwargs):
+        """创建（含废弃警告）"""
+        warnings.warn(
+            "commission-plans endpoint is deprecated, use /api/v1/commissions/plans/ instead",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return super().create(request, *args, **kwargs)
     
     def get_queryset(self):
         """

@@ -47,9 +47,6 @@ class Migration(migrations.Migration):
                 CREATE POLICY rls_notification_templates_admin_readonly ON notification_templates
                     FOR SELECT TO posx_admin
                     USING (true);
-                
-                -- 日志
-                RAISE NOTICE 'RLS enabled on notification_templates';
             """,
             reverse_sql="""
                 -- 回滚：禁用 RLS
@@ -79,9 +76,6 @@ class Migration(migrations.Migration):
                 CREATE POLICY rls_notifications_admin_readonly ON notifications
                     FOR SELECT TO posx_admin
                     USING (true);
-                
-                -- 日志
-                RAISE NOTICE 'RLS enabled on notifications';
             """,
             reverse_sql="""
                 DROP POLICY IF EXISTS rls_notifications_admin_readonly ON notifications;
@@ -114,9 +108,6 @@ class Migration(migrations.Migration):
                 CREATE POLICY rls_notification_channel_tasks_admin_readonly ON notification_channel_tasks
                     FOR SELECT TO posx_admin
                     USING (true);
-                
-                -- 日志
-                RAISE NOTICE 'RLS enabled on notification_channel_tasks';
             """,
             reverse_sql="""
                 DROP POLICY IF EXISTS rls_notification_channel_tasks_admin_readonly ON notification_channel_tasks;
@@ -144,9 +135,6 @@ class Migration(migrations.Migration):
                 CREATE POLICY rls_notification_preferences_admin_readonly ON notification_preferences
                     FOR SELECT TO posx_admin
                     USING (true);
-                
-                -- 日志
-                RAISE NOTICE 'RLS enabled on notification_preferences';
             """,
             reverse_sql="""
                 DROP POLICY IF EXISTS rls_notification_preferences_admin_readonly ON notification_preferences;
@@ -179,9 +167,6 @@ class Migration(migrations.Migration):
                 CREATE POLICY rls_notification_read_receipts_admin_readonly ON notification_read_receipts
                     FOR SELECT TO posx_admin
                     USING (true);
-                
-                -- 日志
-                RAISE NOTICE 'RLS enabled on notification_read_receipts';
             """,
             reverse_sql="""
                 DROP POLICY IF EXISTS rls_notification_read_receipts_admin_readonly ON notification_read_receipts;

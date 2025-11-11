@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'apps.agents',
     'apps.orders_snapshots',
     'apps.vesting',  # ⭐ Phase E: Vesting管理
+    'apps.errors',  # ⭐ P0: 错误码管理
+    'apps.notifications',  # ⭐ P0: 通知系统
 ]
 
 # ============================================

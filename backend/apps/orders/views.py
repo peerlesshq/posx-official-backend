@@ -140,6 +140,7 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
         quantity = serializer.validated_data['quantity']
         wallet_address = serializer.validated_data['wallet_address']
         referral_code = serializer.validated_data.get('referral_code')
+        promo_code = serializer.validated_data.get('promo_code')
         
         # 获取幂等键（从Header）
         idempotency_key = request.META.get('HTTP_IDEMPOTENCY_KEY')
@@ -152,6 +153,7 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
                 quantity=quantity,
                 wallet_address=wallet_address,
                 referral_code=referral_code,
+                promo_code=promo_code,
                 idempotency_key=idempotency_key,
                 user=request.user
             )

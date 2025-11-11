@@ -7,6 +7,7 @@ from django.urls import path, include
 from django.conf import settings
 from apps.core.views.health import health, ready, version
 from apps.core.views.test_views import test_auth, test_public, test_config
+from apps.tiers.urls import admin_urlpatterns as tier_admin_urlpatterns
 
 urlpatterns = [
     # ============================================
@@ -30,7 +31,6 @@ urlpatterns = [
         
         # Original endpoints
         path('users/', include('apps.users.urls')),
-        path('sites/', include('apps.sites.urls')),
         path('tiers/', include('apps.tiers.urls')),
         path('orders/', include('apps.orders.urls')),
         path('allocations/', include('apps.allocations.urls')),
@@ -40,8 +40,15 @@ urlpatterns = [
         # Phase B endpoints (Agents)
         path('agents/', include('apps.agents.urls')),
         
+        # P0 Supplements: Notifications System
+        path('notifications/', include('apps.notifications.urls')),
+        
         # Admin endpoints (需超级管理员)
-        path('admin-api/', include('apps.admin.urls')),
+        path('admin/', include([
+            path('sites/', include('apps.sites.urls')),
+            path('tiers/', include(tier_admin_urlpatterns)),
+            path('reports/', include('apps.admin.urls')),
+        ])),
         
         # Vesting endpoints (Retool 对接)
         path('', include('apps.vesting.urls')),
