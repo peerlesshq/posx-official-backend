@@ -10,8 +10,10 @@ Railway Demo Environment Settings for POSX
 - 自动 HTTPS 和域名配置
 """
 from .base import *  # noqa
+import os
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
+from urllib.parse import quote_plus
 
 # ============================================
 # 环境标识
@@ -39,30 +41,56 @@ CSRF_TRUSTED_ORIGINS = env.list(
 # ============================================
 # 数据库配置（Railway PostgreSQL）
 # ============================================
-# Railway 自动提供 DATABASE_URL
-database_url = env('DATABASE_URL', default=None)
 
-# 检查 DATABASE_URL 是否有效（不是 None 也不是空字符串）
-if not database_url or not database_url.strip():
-    # Railway 新版默认注入 PG* 环境变量（而不是 DATABASE_URL），尝试自动拼接
-    pg_host = env('PGHOST', default=None)
-    pg_port = env('PGPORT', default='5432')
-    pg_db = env('PGDATABASE', default=None)
-    pg_user = env('PGUSER', default=None)
-    pg_password = env('PGPASSWORD', default=None)
+def _get_nonempty_env(key: str) -> str:
+    """获取非空环境变量"""
+    val = os.getenv(key)
+    if val is None:
+        return None
+    val = val.strip()
+    return val if val else None
 
-    if pg_host and pg_db and pg_user and pg_password:
-        database_url = (
-            f"postgresql://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
-        )
+
+def _build_database_url_from_pg_vars() -> str:
+    """从 PG* 环境变量拼装数据库 URL（带 URL 编码）"""
+    host = _get_nonempty_env('PGHOST') or _get_nonempty_env('DB_HOST')
+    port = _get_nonempty_env('PGPORT') or _get_nonempty_env('DB_PORT') or '5432'
+    name = _get_nonempty_env('PGDATABASE') or _get_nonempty_env('DB_NAME')
+    user = _get_nonempty_env('PGUSER') or _get_nonempty_env('DB_USER')
+    password = _get_nonempty_env('PGPASSWORD') or _get_nonempty_env('DB_PASSWORD')
+    
+    if not all([host, name, user, password]):
+        return None
+    
+    # URL 编码用户名和密码，防止特殊字符破坏 URI
+    user_encoded = quote_plus(user)
+    password_encoded = quote_plus(password)
+    
+    # 拼装完整 URL（默认要求 SSL）
+    return f"postgresql://{user_encoded}:{password_encoded}@{host}:{port}/{name}?sslmode=require"
+
+
+# 解析数据库 URL（多层 fallback）
+database_url = _get_nonempty_env('DATABASE_URL')
+
+if not database_url:
+    # Railway 可能注入其他变量名
+    for alt_key in ('RAILWAY_DATABASE_URL', 'POSTGRES_URL', 'POSTGRESQL_URL'):
+        database_url = _get_nonempty_env(alt_key)
+        if database_url:
+            break
+
+if not database_url:
+    # 尝试从 PG* 变量拼装
+    database_url = _build_database_url_from_pg_vars()
 
 if database_url and database_url.strip():
+    # 使用 parse() 而不是 config()，避免重复读取环境变量
     DATABASES = {
-        'default': dj_database_url.config(
-            default=database_url,
+        'default': dj_database_url.parse(
+            database_url,
             conn_max_age=600,
             conn_health_checks=True,
-            ssl_require=True,
         )
     }
 else:
