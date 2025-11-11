@@ -42,7 +42,8 @@ CSRF_TRUSTED_ORIGINS = env.list(
 # Railway 自动提供 DATABASE_URL
 database_url = env('DATABASE_URL', default=None)
 
-if database_url:
+# 检查 DATABASE_URL 是否有效（不是 None 也不是空字符串）
+if database_url and database_url.strip():
     # 使用 Railway 提供的 DATABASE_URL
     DATABASES = {
         'default': dj_database_url.config(
