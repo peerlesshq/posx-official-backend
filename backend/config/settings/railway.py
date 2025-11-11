@@ -43,8 +43,20 @@ CSRF_TRUSTED_ORIGINS = env.list(
 database_url = env('DATABASE_URL', default=None)
 
 # 检查 DATABASE_URL 是否有效（不是 None 也不是空字符串）
+if not database_url or not database_url.strip():
+    # Railway 新版默认注入 PG* 环境变量（而不是 DATABASE_URL），尝试自动拼接
+    pg_host = env('PGHOST', default=None)
+    pg_port = env('PGPORT', default='5432')
+    pg_db = env('PGDATABASE', default=None)
+    pg_user = env('PGUSER', default=None)
+    pg_password = env('PGPASSWORD', default=None)
+
+    if pg_host and pg_db and pg_user and pg_password:
+        database_url = (
+            f"postgresql://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
+        )
+
 if database_url and database_url.strip():
-    # 使用 Railway 提供的 DATABASE_URL
     DATABASES = {
         'default': dj_database_url.config(
             default=database_url,
@@ -54,31 +66,31 @@ if database_url and database_url.strip():
         )
     }
 else:
-    # Fallback: 如果 DATABASE_URL 未设置，抛出清晰的错误
+    # Fallback: 如果仍然无法构建数据库连接，输出调试信息
     import sys
     import os
-    
+
     print("=" * 80, file=sys.stderr)
-    print("❌ DATABASE_URL 环境变量未设置！", file=sys.stderr)
+    print("❌ DATABASE_URL 环境变量未设置，且无法根据 PG* 变量拼装！", file=sys.stderr)
     print("", file=sys.stderr)
     print("请检查 Railway 配置：", file=sys.stderr)
     print("1. Postgres Service 是否已创建并运行？", file=sys.stderr)
     print("2. Postgres 变量是否已引用到此 Service？", file=sys.stderr)
     print("   进入 Backend Service → Variables", file=sys.stderr)
     print("   添加: DATABASE_URL=${{Postgres-FHHx.DATABASE_URL}}", file=sys.stderr)
+    print("   或确认 PGHOST / PGUSER / PGPASSWORD 等变量存在", file=sys.stderr)
     print("", file=sys.stderr)
-    print("当前环境变量:", file=sys.stderr)
+    print("当前环境变量（已截断敏感信息）:", file=sys.stderr)
     for key in sorted(os.environ.keys()):
-        if 'PG' in key or 'DATA' in key or 'RAILWAY' in key:
+        if key.startswith('PG') or key.startswith('DATA') or key.startswith('RAILWAY'):
             value = os.environ[key]
-            # 隐藏密码
             if 'PASSWORD' in key or 'SECRET' in key:
                 value = '*' * 8
-            print(f"  {key} = {value[:50]}...", file=sys.stderr)
+            print(f"  {key} = {value[:80]}...", file=sys.stderr)
     print("=" * 80, file=sys.stderr)
-    
+
     raise ImproperlyConfigured(
-        "DATABASE_URL is required. Please connect Postgres service to this Railway service."
+        "DATABASE_URL is required. Please ensure Postgres service is connected and variables are set."
     )
 
 # ============================================
