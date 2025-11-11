@@ -2,6 +2,7 @@
 # ⭐ 核心检查点: Row Level Security (RLS) 策略
 
 from django.db import migrations
+import os
 
 
 class Migration(migrations.Migration):
@@ -17,10 +18,11 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('notifications', '0001_initial'),
-        ('core', '0004_enable_rls_policies'),  # 依赖 core RLS 已启用
+        ('core', '0004_enable_rls_policies'),  # 依赖 core RLS 已启用（角色已创建）
     ]
 
-    operations = [
+    # ⭐ Railway Demo 环境可跳过（使用环境变量 SKIP_RLS_POLICIES=1）
+    operations = [] if os.getenv('SKIP_RLS_POLICIES') == '1' else [
         # ============================================
         # 1. notification_templates 表 RLS
         # ============================================
