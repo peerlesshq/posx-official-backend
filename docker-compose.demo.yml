@@ -1,0 +1,185 @@
+version: '3.8'
+
+# ============================================
+# POSX Demo 环境 - Docker Compose 配置
+# ============================================
+# 
+# 特性：
+# - 所有服务配置健康检查
+# - 使用 depends_on: service_healthy 确保启动顺序
+# - restart: unless-stopped 自动重启
+# - 针对 t3.micro 资源优化（workers=2）
+# 
+# 使用方法：
+# docker compose -f docker-compose.demo.yml up -d --build
+# 
+# ============================================
+
+services:
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  db:
+    image: postgres:15-alpine
+    container_name: posx_demo_db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-posx_demo}
+      POSTGRES_USER: ${DB_USER:-posx_app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me}
+      TZ: UTC
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-posx_app} -d ${DB_NAME:-posx_demo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - posx_demo
+
+  # ============================================
+  # Redis
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: posx_demo_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - posx_demo
+
+  # ============================================
+  # Django Backend (Gunicorn)
+  # ============================================
+  web:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: posx_demo_web
+    command: >
+      bash -c "
+        python manage.py collectstatic --noinput &&
+        gunicorn config.wsgi:application
+          --workers \$${WEB_CONCURRENCY:-2}
+          --threads \$${THREADS:-2}
+          --bind 0.0.0.0:8000
+          --access-logfile -
+          --error-logfile -
+      "
+    env_file:
+      - .env.demo
+    volumes:
+      - static_volume:/var/www/static
+      - media_volume:/var/www/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/ready/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - posx_demo
+
+  # ============================================
+  # Celery Worker
+  # ============================================
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: posx_demo_worker
+    command: celery -A config worker -l info --max-tasks-per-child=1000
+    env_file:
+      - .env.demo
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - posx_demo
+
+  # ============================================
+  # Celery Beat
+  # ============================================
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: posx_demo_beat
+    command: celery -A config beat -l info
+    env_file:
+      - .env.demo
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - posx_demo
+
+  # ============================================
+  # Caddy (Reverse Proxy + Auto HTTPS)
+  # ============================================
+  caddy:
+    image: caddy:2-alpine
+    container_name: posx_demo_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - posx_demo
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  static_volume:
+    driver: local
+  media_volume:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  posx_demo:
+    driver: bridge
+
