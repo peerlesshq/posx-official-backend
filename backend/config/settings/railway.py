@@ -85,14 +85,24 @@ if not database_url:
     database_url = _build_database_url_from_pg_vars()
 
 if database_url and database_url.strip():
-    # 使用 parse() 而不是 config()，避免重复读取环境变量
-    DATABASES = {
-        'default': dj_database_url.parse(
-            database_url,
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
-    }
+    # 临时清空环境变量中的 DATABASE_URL，防止 parse() 重复读取
+    original_db_url = os.environ.get('DATABASE_URL')
+    if 'DATABASE_URL' in os.environ:
+        del os.environ['DATABASE_URL']
+    
+    try:
+        # 使用 parse() 解析我们构建的 URL
+        DATABASES = {
+            'default': dj_database_url.parse(
+                database_url,
+                conn_max_age=600,
+                conn_health_checks=True,
+            )
+        }
+    finally:
+        # 恢复原始环境变量（如果需要）
+        if original_db_url is not None:
+            os.environ['DATABASE_URL'] = original_db_url
 else:
     # Fallback: 如果仍然无法构建数据库连接，输出调试信息
     import sys
