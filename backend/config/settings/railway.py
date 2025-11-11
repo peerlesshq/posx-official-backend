@@ -11,6 +11,7 @@ Railway Demo Environment Settings for POSX
 """
 from .base import *  # noqa
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # ============================================
 # 环境标识
@@ -39,9 +40,16 @@ CSRF_TRUSTED_ORIGINS = env.list(
 # 数据库配置（Railway PostgreSQL）
 # ============================================
 # Railway 自动提供 DATABASE_URL
+database_url = env('DATABASE_URL', default='')
+if not database_url:
+    raise ImproperlyConfigured(
+        "DATABASE_URL environment variable is not set. "
+        "Please ensure Postgres service is connected to this Railway service."
+    )
+
 DATABASES = {
     'default': dj_database_url.config(
-        default=env('DATABASE_URL'),
+        default=database_url,
         conn_max_age=600,
         conn_health_checks=True,
         ssl_require=True,
