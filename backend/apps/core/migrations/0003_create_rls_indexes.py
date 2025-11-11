@@ -18,7 +18,12 @@ class Migration(migrations.Migration):
     atomic = False  # ⭐ 必须：支持 CONCURRENTLY
 
     dependencies = [
-        # ('core', '0002_create_initial_schema'),  # ⚠️ 已删除,DB已就绪
+        ('orders', '0001_initial'),
+        ('tiers', '0001_initial'),
+        ('commissions', '0002_commission_plans'),
+        ('allocations', '0001_initial'),
+        ('users', '0001_initial'),
+        ('sites', '0001_initial'),
     ]
 
     operations = [
