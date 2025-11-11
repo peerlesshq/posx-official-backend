@@ -39,28 +39,14 @@ CSRF_TRUSTED_ORIGINS = env.list(
 # 数据库配置（Railway PostgreSQL）
 # ============================================
 # Railway 自动提供 DATABASE_URL
-if env('DATABASE_URL', default=None):
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=env('DATABASE_URL'),
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True,
-        )
-    }
-else:
-    # Fallback（不应该走到这里）
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': env('DB_NAME', default='posx_demo'),
-            'USER': env('DB_USER', default='posx_app'),
-            'PASSWORD': env('DB_PASSWORD'),
-            'HOST': env('DB_HOST', default='localhost'),
-            'PORT': env('DB_PORT', default='5432'),
-            'CONN_MAX_AGE': 600,
-        }
-    }
+DATABASES = {
+    'default': dj_database_url.config(
+        default=env('DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True,
+    )
+}
 
 # ============================================
 # Redis & Celery（Railway Redis）
