@@ -95,6 +95,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'mediafiles'
 
+# 覆盖 base.py 中的 STATICFILES_DIRS（Railway 环境中该目录不存在）
+STATICFILES_DIRS = []
+
 # WhiteNoise for static files serving
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')  # noqa
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
